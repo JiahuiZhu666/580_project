@@ -3,6 +3,7 @@ import pandas as pd
 from plotly import tools
 from plotly.graph_objs import *
 from plotly.offline import init_notebook_mode, iplot, iplot_mpl
+import torch
 
 def plot_train_test(train, test, date_split):
     """
@@ -52,7 +53,7 @@ def plot_loss_reward(total_losses, total_rewards):
     iplot(figure)
 
 
-def plot_train_test_by_q(train_env, test_env, Q, algorithm_name):
+def plot_train_test_by_q(train_env, test_env, Q, algorithm_name, date_split):
     """
     Simulates the training process of a Q-learning algorithm on the train_env environment.
 
@@ -72,8 +73,8 @@ def plot_train_test_by_q(train_env, test_env, Q, algorithm_name):
 
     for _ in range(len(train_env.data)-1):
         
-        pact = Q(np.array(pobs, dtype=np.float32).reshape(1, -1))
-        pact = np.argmax(pact.data)
+        pact = Q(torch.tensor(pobs, dtype=torch.float32).reshape(1, -1))
+        pact = torch.argmax(pact.data)
         train_acts.append(pact)
             
         obs, reward, done = train_env.step(pact)
@@ -90,8 +91,8 @@ def plot_train_test_by_q(train_env, test_env, Q, algorithm_name):
 
     for _ in range(len(test_env.data)-1):
     
-        pact = Q(np.array(pobs, dtype=np.float32).reshape(1, -1))
-        pact = np.argmax(pact.data)
+        pact = Q(torch.tensor(pobs, dtype=torch.float32).reshape(1, -1))
+        pact = torch.argmax(pact.data)
         test_acts.append(pact)
             
         obs, reward, done = test_env.step(pact)
