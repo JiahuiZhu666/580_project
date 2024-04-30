@@ -4,6 +4,7 @@ from plotly import tools
 from plotly.graph_objs import *
 from plotly.offline import init_notebook_mode, iplot, iplot_mpl
 import torch
+import os
 
 def plot_train_test(train, test, date_split):
     """
@@ -53,7 +54,7 @@ def plot_loss_reward(total_losses, total_rewards):
     iplot(figure)
 
 
-def plot_train_test_by_q(train_env, test_env, Q, algorithm_name, date_split):
+def plot_train_test_by_q(train_env, test_env, Q, algorithm_name, date_split, out_path=None):
     """
     Simulates the training process of a Q-learning algorithm on the train_env environment.
 
@@ -145,3 +146,6 @@ def plot_train_test_by_q(train_env, test_env, Q, algorithm_name, date_split):
     }
     figure = Figure(data=data, layout=layout)
     iplot(figure)
+    if out_path is not None:
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    figure.write_html(out_path)

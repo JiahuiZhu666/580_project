@@ -8,6 +8,8 @@ import torch.optim as optim
 from environment import Environment1
 from data_loader import load_data, split_data
 from plot import plot_loss_reward, plot_train_test_by_q
+import os
+import pandas as pd
 
 
 # Dueling Double DQN
@@ -42,7 +44,7 @@ class Q_Network(torch.nn.Module):
         self.zero_grad()
 """ >>> """
 
-def train_dddqn(env):
+def train_dddqn(env, Q = None):
 
     """ <<< Double DQN -> Dueling Double DQN
     class Q_Network(chainer.Chain):
@@ -64,8 +66,8 @@ def train_dddqn(env):
             self.zerograds()
     === """
 
-
-    Q = Q_Network(input_size=env.history_t+1, hidden_size=100, output_size=3)
+    if Q is None:
+        Q = Q_Network(input_size=env.history_t+1, hidden_size=100, output_size=3)
     Q_ast = copy.deepcopy(Q)
     optimizer = optim.Adam(Q.parameters(), lr=0.0001)
 
@@ -172,21 +174,88 @@ def train_dddqn(env):
     return Q, total_losses, total_rewards
 
 
-if __name__ == '__main__':
-    model_path = 'src/models/dddqn/'
-    date_split = '2016-01-01'
+def train_folder(load_Q = False):
+    Q = None
+    data_path = 'src/data'
+    output_data = []
+    for i, filename in enumerate(os.listdir(data_path)):
+        stock_name = filename.split(".")[0]
+        model_path = 'src/models/dddqn/main/'
+        output_data.append(stock_name)
 
 
-    data = load_data('src/data/stock_data')
-    train, test = split_data(data, date_split)
-    # Q, total_losses, total_rewards = train_dddqn(Environment1(train))
-    # torch.save(Q, model_path + 'network_data.pth')
-    # np.save(model_path + 'total_losses.npy', total_losses)
-    # np.save(model_path + 'total_rewards.npy', total_rewards)
+        data = load_data(data_path + '/' + filename)
+        date_split = pd.read_csv(data_path + '/' + filename)["Date"][int(len(data) * 0.9)]
+        train, test = split_data(data, date_split)
 
-    Q = torch.load(model_path + 'network_data.pth')
-    total_losses = np.load(model_path + 'total_losses.npy')
-    total_rewards = np.load(model_path + 'total_rewards.npy')
+        if not load_Q:
+            Q, total_losses, total_rewards = train_dddqn(Environment1(train), Q)
+            if not os.path.exists(model_path):
+                os.makedirs(model_path)
+            torch.save(Q, model_path + 'network_data.pth')
+            np.save(model_path + 'total_losses.npy', total_losses)
+            np.save(model_path + 'total_rewards.npy', total_rewards)
+
+        if load_Q:
+            Q = torch.load(model_path + 'network_data.pth')
+            total_losses = np.load(model_path + 'total_losses.npy')
+            total_rewards = np.load(model_path + 'total_rewards.npy')
+
+        if i == 10:
+            break
+    print(output_data)
 
     plot_loss_reward(total_losses, total_rewards)
-    plot_train_test_by_q(Environment1(train), Environment1(test), Q, 'Dueling Double DQN', date_split)
+    plot_train_test_by_q(Environment1(train), Environment1(test), Q, 'Dueling Double DQN', date_split, "src/plots/" + stock_name + "/dddqn.html")
+
+def train_one(filename, load_Q = False):
+    data_path = 'src/data'
+    stock_name = filename.split(".")[0]
+    model_path = 'src/models/dddqn/'
+
+
+    data = load_data(data_path + '/' + filename)
+    date_split = pd.read_csv(data_path + '/' + filename)["Date"][int(len(data) * 0.8)]
+    train, test = split_data(data, date_split)
+
+    if not load_Q:
+        Q, total_losses, total_rewards = train_dddqn(Environment1(train))
+        if not os.path.exists(model_path + stock_name):
+            os.makedirs(model_path + stock_name)
+        torch.save(Q, model_path + stock_name + '/network_data.pth')
+        np.save(model_path + stock_name + '/total_losses.npy', total_losses)
+        np.save(model_path + stock_name + '/total_rewards.npy', total_rewards)
+
+    if load_Q:
+        Q = torch.load(model_path + stock_name + '/network_data.pth')
+        total_losses = np.load(model_path + stock_name + '/total_losses.npy')
+        total_rewards = np.load(model_path + stock_name + '/total_rewards.npy')
+
+    
+    plot_loss_reward(total_losses, total_rewards)
+    plot_train_test_by_q(Environment1(train), Environment1(test), Q, 'Dueling Double DQN', date_split, "src/plots/" + stock_name + "/dddqn.html")
+
+if __name__ == '__main__':
+    train_one('googl.us.txt', load_Q=True)
+
+
+    # Q_Rand = Q_Network(input_size=91, hidden_size=100, output_size=3)
+    # plot_train_test_by_q(Environment1(train), Environment1(test), Q_Rand, 'Random DQN', date_split, "src/plots/" + stock_name + "/random.html")
+
+    # data_path = 'src/data'
+    # filename = 'googl.us.txt'
+    # stock_name = filename.split(".")[0]
+    # model_path = 'src/models/dddqn/'
+
+
+    # data = load_data(data_path + '/' + filename)
+    # date_split = pd.read_csv(data_path + '/' + filename)["Date"][int(len(data) * 0.8)]
+    # train, test = split_data(data, date_split)
+
+    # Q = torch.load(model_path + 'network_data.pth')
+    # total_losses = np.load(model_path + 'total_losses.npy')
+    # total_rewards = np.load(model_path + 'total_rewards.npy')
+
+    
+    # plot_loss_reward(total_losses, total_rewards)
+    # plot_train_test_by_q(Environment1(train), Environment1(test), Q, 'Dueling Double DQN', date_split, "src/plots/" + stock_name + "/dddqn.html")
