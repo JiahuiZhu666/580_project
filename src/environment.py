@@ -32,8 +32,8 @@ class Environment1:
                 reward += profits
                 self.profits += profits
                 self.positions = []
-        
-        # set next time
+
+        # set next time        
         self.t += 1
         self.position_value = 0
         for p in self.positions:
